@@ -77,12 +77,18 @@ Asegúrate de que el directorio /opt/openshift/ exista en cada nodo. Si no exist
 sudo mkdir -p /opt/openshift/
 ```
 
+Añade permisos de ejecución al script:
+
+```bash 
+chmod +x copy_ignition_files.sh
+```
+
 Ejecuta el script para copiar los archivos
 
 Ignition a los nodos:
 
 ```bash
-./nombre_del_script.sh
+./copy_ignition_files.sh
 ```
 
 Comenzar la Instalación del Clúster
