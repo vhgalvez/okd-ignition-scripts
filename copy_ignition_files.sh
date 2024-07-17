@@ -12,7 +12,7 @@ hosts=(
 )
 
 # Path to the SSH key
-SSH_KEY="/root/.ssh/cluster_openshift/key_cluster_openshift/id_rsa_key_cluster_openshift"
+SSH_KEY="/home/core/.ssh/id_rsa_key_cluster_openshift"
 
 # Path to the Ignition files
 IGNITION_DIR="/home/core/okd-install"
