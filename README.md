@@ -1,46 +1,78 @@
-# OKD Ignition Scripts
+Documentación Completa para la Instalación de OKD en un Nodo Bootstrap
+Esta guía detalla los pasos necesarios para instalar OKD en un nodo bootstrap, asumiendo que las máquinas virtuales y los archivos Ignition necesarios ya han sido configurados y generados.
 
-Este repositorio contiene scripts y configuraciones necesarias para la instalación y configuración de un clúster OKD utilizando archivos Ignition.
+Prerrequisitos
+Acceso SSH: Debes tener acceso SSH a los nodos del clúster (bootstrap, master, worker).
+Archivos Ignition Generados: Asegúrate de haber generado los archivos Ignition necesarios (bootstrap.ign, master.ign, worker.ign) utilizando openshift-install.
+Terraform y KVM: Instala y configura Terraform para gestionar la infraestructura, y KVM para las máquinas virtuales.
+1. Configuración del archivo install-config.yaml
+El archivo install-config.yaml debe estar configurado correctamente. A continuación se muestra un ejemplo de cómo debería verse:
 
-## Prerrequisitos
+yaml
+Copiar código
+apiVersion: v1
+baseDomain: cefaslocalserver.com
+metadata:
+  name: okd-cluster
+compute:
+- name: worker
+  replicas: 3
+controlPlane:
+  name: master
+  replicas: 3
+networking:
+  networkType: OpenShiftSDN
+  clusterNetwork:
+  - cidr: 10.128.0.0/14
+    hostPrefix: 23
+  serviceNetwork:
+  - 172.30.0.0/16
+platform:
+  none: {}
+fips: false
+pullSecret: '<YOUR_PULL_SECRET>'
+sshKey: 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDC9XqGWEd2de3Ud8TgvzFchK2/SYh+WHohA1KEuveXjCbse9aXKmNAZ369vaGFFGrxbSptMeEt41ytEFpU09gAXM6KSsQWGZxfkCJQSWIaIEAdft7QHnTpMeronSgYZIU+5P7/RJcVhHBXfjLHV6giHxFRJ9MF7n6sms38VsuF2s4smI03DWGWP6Ro7siXvd+LBu2gDqosQaZQiz5/FX5YWxvuhq0E/ACas/JE8fjIL9DQPcFrgQkNAv1kHpIWRqSLPwyTMMxGgFxGI8aCTH/Uaxbqa7Qm/aBfdG2lZBE1XU6HRjAToFmqsPJv4LkBxaC1Ag62QPXONNxAA97arICr vhgalvez@gmail.com'
+Asegúrate de reemplazar <YOUR_PULL_SECRET> con tu secreto de extracción real.
 
-- Acceso SSH a los nodos del clúster (bootstrap, master, worker).
-- Archivos Ignition generados (`bootstrap.ign`, `master.ign`, `worker.ign`) utilizando `openshift-install`.
-- Terraform instalado y configurado para gestionar la infraestructura.
+2. Generación de Archivos Ignition
+Si aún no has generado los archivos Ignition, sigue estos pasos:
 
-## Generar Archivos Ignition
+bash
+Copiar código
+# Moverse al directorio de instalación
+cd /home/core/okd-install
 
-1. Moverse al directorio de instalación:
-   ```bash
-   cd /home/core/okd-install
-   ```
-
-Generar los manifiestos:
-
-```bash
+# Generar los manifiestos
 openshift-install create manifests --dir=/home/core/okd-install
-```
-Generar los archivos Ignition:
 
-```bash
+# Generar los archivos Ignition
 openshift-install create ignition-configs --dir=/home/core/okd-install
-```
-Verificar que se hayan creado los archivos Ignition:
 
-```bash
+# Verificar que se hayan creado los archivos Ignition
 ls /home/core/okd-install/
-```
-
 # Deberías ver los archivos: bootstrap.ign, master.ign, worker.ign, etc.
+3. Mover el Archivo bootstrap.ign al Directorio Correcto en el Nodo Bootstrap
+El archivo bootstrap.ign debe estar en el directorio /opt/openshift/ en el nodo bootstrap:
 
-Copiar Archivos Ignition a los Nodos
-Script de Copia
-Este script copia los archivos Ignition generados a los nodos correspondientes:
+bash
+Copiar código
+# Crear el directorio /opt/openshift/ si no existe
+sudo mkdir -p /opt/openshift/
 
-```bash
+# Mover el archivo bootstrap.ign al directorio /opt/openshift/
+sudo cp /home/core/okd-install/bootstrap.ign /opt/openshift/
+
+# Verificar que el archivo se haya movido correctamente
+ls /opt/openshift/
+# Deberías ver el archivo bootstrap.ign
+4. Transferir los Archivos Ignition a los Nodos Master y Worker
+Puedes utilizar el siguiente script para copiar los archivos Ignition a los nodos correspondientes:
+
+bash
+Copiar código
 #!/bin/bash
 
-# Define an array with the hostnames and their corresponding IP addresses
+# Define un array con los nombres de host y sus direcciones IP correspondientes
 declare -A hosts
 hosts=(
   ["master1"]="10.17.4.21"
@@ -51,13 +83,13 @@ hosts=(
   ["worker3"]="10.17.4.26"
 )
 
-# Path to the SSH key
-SSH_KEY="/root/.ssh/cluster_openshift/key_cluster_openshift/id_rsa_key_cluster_openshift"
+# Ruta a la clave SSH
+SSH_KEY="/home/core/.ssh/id_rsa_key_cluster_openshift"
 
-# Path to the Ignition files
+# Ruta a los archivos Ignition
 IGNITION_DIR="/home/core/okd-install"
 
-# Iterate over the array and copy the corresponding ignition files
+# Iterar sobre el array y copiar los archivos Ignition correspondientes
 for host in "${!hosts[@]}"; do
   ip=${hosts[$host]}
   if [[ $host == master* ]]; then
@@ -65,84 +97,40 @@ for host in "${!hosts[@]}"; do
   else
     ignition_file="worker.ign"
   fi
-  echo "Copying $ignition_file to $host ($ip)..."
+  echo "Creating directory and copying $ignition_file to $host ($ip)..."
+  ssh -i "$SSH_KEY" core@$ip "sudo mkdir -p /opt/openshift/"
   scp -i "$SSH_KEY" "$IGNITION_DIR/$ignition_file" core@$ip:/opt/openshift/$ignition_file
 done
-```
-
-Uso del Script
-Asegúrate de que el directorio /opt/openshift/ exista en cada nodo. Si no existe, créalo con el siguiente comando en cada nodo:
-
-```bash
-sudo mkdir -p /opt/openshift/
-```
-
-Añade permisos de ejecución al script:
-
-```bash 
-chmod +x copy_ignition_files.sh
-```
-
-Ejecuta el script para copiar los archivos
-
-Ignition a los nodos:
-
-```bash
-./copy_ignition_files.sh
-```
-
-Comenzar la Instalación del Clúster
+5. Comenzar la Instalación del Clúster
 Una vez que los archivos Ignition estén en su lugar, comienza la instalación del clúster desde el nodo bootstrap:
 
-```bash
+bash
+Copiar código
 openshift-install create cluster --dir=/home/core/okd-install --log-level=debug
-```
-
-Verificar los Archivos Ignition en los Nodos
+6. Verificar los Archivos Ignition en los Nodos
 Después de copiar los archivos, verifica que estén en el directorio correcto en cada nodo:
 
-```bash
+bash
+Copiar código
 ls /opt/openshift/
-```
-
-
-
-
-Explicación del Script
-Definición de los Hosts: Se define un array con los nombres de los hosts y sus direcciones IP correspondientes.
-Ruta a la Clave SSH: Se define la ruta a la clave SSH.
-Ruta a los Archivos Ignition: Se define la ruta a los archivos Ignition.
-Iteración sobre los Hosts: Se itera sobre el array de hosts.
-Se determina qué archivo Ignition se debe copiar basado en si el host es un master o un worker.
-Se crea el directorio /opt/openshift/ en el host remoto si no existe.
-Se copia el archivo Ignition correspondiente al directorio /opt/openshift/ en el host remoto.
-Permisos de Ejecución
-Asegúrate de que el script tenga permisos de ejecución:
-
-bash
-Copiar código
-sudo chmod +x copy_ignition_files.sh
-Ejecución del Script
-Ejecuta el script:
-
-bash
-Copiar código
-sudo ./copy_ignition_files.sh
-Este script se encargará de crear el directorio necesario en cada nodo y copiar los archivos Ignition correspondientes.
-
-
-
-
-
-
-
-
 # Deberías ver los archivos Ignition correspondientes
+7. Esperar a que el Proceso de Bootstrap Complete
+Ejecuta el siguiente comando para esperar a que el proceso de bootstrap complete:
 
-Contribuir
+bash
+Copiar código
+openshift-install wait-for bootstrap-complete --dir=/home/core/okd-install
+Solución de Problemas
+Si encuentras problemas durante la instalación, revisa los logs de los servicios importantes:
+bash
+Copiar código
+journalctl -b -f -u bootkube.service
+journalctl -b -f -u kubelet.service
+Para obtener más detalles sobre la instalación de OKD, puedes consultar la documentación oficial de OKD y la guía de instalación en Red Hat.
 
-Si deseas contribuir a este proyecto, por favor haz un fork del repositorio y envía un pull request con tus cambios.
 
-Licencia
 
-Este proyecto está bajo la Licencia MIT. Consulta el archivo LICENSE para más detalles.
+
+
+
+
