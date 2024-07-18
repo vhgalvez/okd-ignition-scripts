@@ -26,6 +26,7 @@ for host in "${!hosts[@]}"; do
     ignition_file="worker.ign"
   fi
   echo "Creating directory and copying $ignition_file to $host ($ip)..."
-  sudo ssh -i "$SSH_KEY" core@$ip "sudo mkdir -p /opt/openshift/"
+  sudo ssh -i "$SSH_KEY" core@$ip "sudo mkdir -p /opt/openshift/ && sudo chown core:core /opt/openshift/"
   sudo scp -i "$SSH_KEY" "$IGNITION_DIR/$ignition_file" core@$ip:/opt/openshift/$ignition_file
+  sudo ssh -i "$SSH_KEY" core@$ip "sudo chown root:root /opt/openshift/$ignition_file"
 done
