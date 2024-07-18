@@ -105,6 +105,38 @@ Después de copiar los archivos, verifica que estén en el directorio correcto e
 ls /opt/openshift/
 ```
 
+
+
+
+Explicación del Script
+Definición de los Hosts: Se define un array con los nombres de los hosts y sus direcciones IP correspondientes.
+Ruta a la Clave SSH: Se define la ruta a la clave SSH.
+Ruta a los Archivos Ignition: Se define la ruta a los archivos Ignition.
+Iteración sobre los Hosts: Se itera sobre el array de hosts.
+Se determina qué archivo Ignition se debe copiar basado en si el host es un master o un worker.
+Se crea el directorio /opt/openshift/ en el host remoto si no existe.
+Se copia el archivo Ignition correspondiente al directorio /opt/openshift/ en el host remoto.
+Permisos de Ejecución
+Asegúrate de que el script tenga permisos de ejecución:
+
+bash
+Copiar código
+sudo chmod +x copy_ignition_files.sh
+Ejecución del Script
+Ejecuta el script:
+
+bash
+Copiar código
+sudo ./copy_ignition_files.sh
+Este script se encargará de crear el directorio necesario en cada nodo y copiar los archivos Ignition correspondientes.
+
+
+
+
+
+
+
+
 # Deberías ver los archivos Ignition correspondientes
 
 Contribuir
