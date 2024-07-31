@@ -27,8 +27,8 @@ for host in "${!hosts[@]}"; do
   fi
   echo "Creating directory and copying $ignition_file to $host ($ip)..."
   ssh -i "$SSH_KEY" core@$ip "sudo mkdir -p /opt/openshift/ && sudo rm -f /opt/openshift/$ignition_file"
-  scp -i "$SSH_KEY" "$IGNITION_DIR/$ignition_file" core@$ip:/home/core/
-  ssh -i "$SSH_KEY" core@$ip "sudo mv /home/core/$ignition_file /opt/openshift/$ignition_file"
+  scp -i "$SSH_KEY" "$IGNITION_DIR/$ignition_file" core@$ip:/tmp/$ignition_file
+  ssh -i "$SSH_KEY" core@$ip "sudo mv /tmp/$ignition_file /opt/openshift/$ignition_file"
 done
 
 # Copy the bootstrap.ign file to the appropriate directory on the bootstrap node
