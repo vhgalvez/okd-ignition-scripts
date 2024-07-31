@@ -134,3 +134,18 @@ Para obtener más detalles sobre la instalación de OKD, puedes consultar la doc
 
 
 
+
+
+Paso 1: Dar Permisos de Ejecución al Script
+Otorga permisos de ejecución al script copy_ignition_files.sh:
+
+bash
+Copiar código
+chmod +x copy_ignition_files.sh
+Paso 2: Ejecutar el Script con Sudo
+Ejecuta el script modificado para copiar los archivos de ignición a los nodos maestros y trabajadores:
+
+bash
+Copiar código
+sudo ./copy_ignition_files.sh
+Si el script todavía falla debido a permisos, verifica que los nodos pueden recibir archivos en los directorios especificados y que los permisos de sudo están configurados adecuadamente.
